@@ -27,53 +27,43 @@ import app.akexorcist.bluetotohspp.library.DeviceList;
 
 
 public class MainActivity extends AppCompatActivity {
-    public static final int SEND_INFORMATION = 0;
-    public static final int SEND_STOP = 1;
+    public static final int END = 0;
+    public static final int RESET = 1;
+
+
     private BluetoothSPP bt;
-    SendThread thread;
     TextView textElement;
     TextView textBraille;
     TextView textState;
-    Button btnNext;
-    Button btnChange;
+    Button btnReset;
+    Button btnSend;
     Switch btnState;
     EditText textSend;
+
+    Thread sendthread;
+    SendThread st;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        btnNext = findViewById(R.id.btnNext);
-        btnChange = findViewById(R.id.btnSend);
+        btnReset = findViewById(R.id.btnReset);
+        btnSend = findViewById(R.id.btnSend);
         btnState = findViewById(R.id.btnState);
 
         textState = findViewById(R.id.textState);
         textElement = findViewById(R.id.textElement);
         textBraille = findViewById(R.id.textBraille);
         textSend = findViewById(R.id.textSend);
-
-
         bt = new BluetoothSPP(this); //Initializing
-
         if (!bt.isBluetoothAvailable()) { //블루투스 사용 불가
             Toast.makeText(getApplicationContext()
                     , "블루투스 사용 불가"
                     , Toast.LENGTH_SHORT).show();
             finish();
         }
-
-        bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() { //데이터 수신
-
-            public void onDataReceived(byte[] data, String message) {
-                Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-                if (message.contains("q")) {
-                    handler.sendEmptyMessage(SEND_STOP);
-                    textState.setText("아두이노 신호 대기");
-                }
-            }
-        });
-
         bt.setBluetoothConnectionListener(new BluetoothSPP.BluetoothConnectionListener() { //연결됐을 때
             Button btnConnect = findViewById(R.id.btnConnect);
 
@@ -83,8 +73,7 @@ public class MainActivity extends AppCompatActivity {
                         , Toast.LENGTH_SHORT).show();
                 btnState.setChecked(true);
                 textState.setText("연결 성공, 입력 대기");
-                btnChange.setEnabled(true);
-                btnNext.setEnabled(true);
+                btnSend.setEnabled(true);
                 textSend.setEnabled(true);
                 btnConnect.setText("연결해제");
             }
@@ -94,8 +83,8 @@ public class MainActivity extends AppCompatActivity {
                         , "Connection lost", Toast.LENGTH_SHORT).show();
                 btnState.setChecked(false);
                 textState.setText("연결 해제");
-                btnChange.setEnabled(false);
-                btnNext.setEnabled(false);
+                btnSend.setEnabled(false);
+                btnReset.setEnabled(false);
                 textSend.setEnabled(false);
                 btnConnect.setText("연결");
             }
@@ -105,8 +94,8 @@ public class MainActivity extends AppCompatActivity {
                         , "Unable to connect", Toast.LENGTH_SHORT).show();
                 btnState.setChecked(false);
                 textState.setText("연결 실패");
-                btnChange.setEnabled(false);
-                btnNext.setEnabled(false);
+                btnSend.setEnabled(false);
+                btnReset.setEnabled(false);
                 textSend.setEnabled(false);
                 btnConnect.setText("연결");
             }
@@ -125,176 +114,111 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        btnNext.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                handler.sendEmptyMessage(SEND_STOP);
+        bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() { //데이터 수신
+            public void onDataReceived(byte[] data, String message) {
+//                Toast.makeText(MainActivity.this, "수신 성공", Toast.LENGTH_SHORT).show();
+                if (message.contains("q")) {
+                    sendthread.interrupt();
+                    textState.setText("아두이노 통신 중");
+                }
             }
         });
 
-        btnChange.setOnClickListener(new View.OnClickListener() {
+
+        btnReset.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String str = textSend.getText().toString();
-                thread = new SendThread(str);
-                thread.start();
+                st.onReset();
+            }
+        });
+
+        btnSend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                btnReset.setEnabled(true);
+                btnSend.setEnabled(false);
+                ArrayList<List> braille_list = H2b.convert(textSend.getText().toString());
+
+                textState.setText("아두이노 신호 대기");
+                st = new SendThread(braille_list);
+                sendthread = new Thread(st);
+                sendthread.start();
             }
         });
     }
 
-    @SuppressLint("HandlerLeak")
-    final Handler handler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case SEND_INFORMATION:
-                    bt.send((String) msg.obj, true);
-                    break;
-
-                case SEND_STOP:
-                    thread.interrupt();
-                    break;
-
-                default:
-                    break;
-            }
-        }
-    };
-
-    class SendThread extends java.lang.Thread {
-        String str;
-        ArrayList<List> braille_list;
+    class SendThread implements Runnable {
         ArrayList<String> binary_data = new ArrayList<>();
         ArrayList<String> element_data = new ArrayList<>();
         ArrayList<String> braille_data = new ArrayList<>();
-        ArrayList space_braille = new ArrayList<>(Arrays.asList("\\", "000000/", 1, "⣿"));
+        ArrayList space_braille = new ArrayList<>(Arrays.asList("\\", "000000/", 1, "ㆍ"));
+        ArrayList<List> braille_list;
+        boolean stop;
 
         int braille_length = 0;
         int max_braille_length = 4;
 
-        Message message;
-
-        public SendThread(String str) {
-            this.str = str;
+        SendThread(ArrayList<List> braille_list) {
+            this.braille_list = braille_list;
+            this.stop = false;
         }
-
-        public void onSend() {
+        void onSend() {
             String element_str = "";
             String braille_str = "";
             String binary_str = "";
-
             for (int j = 0; j < binary_data.size(); j++) {
                 binary_str += binary_data.get(j);
                 element_str += element_data.get(j);
                 braille_str += braille_data.get(j) + " ";
             }
-
+            Log.i("", "데이터 전송");
             textElement.setText(element_str);
             textBraille.setText(braille_str);
 
-            message = handler.obtainMessage();
-            message.what = SEND_INFORMATION;
-            message.obj = binary_str;
-            handler.sendMessage(message);
-
-            while (!Thread.currentThread().isInterrupted()) {
-            }
-            thread.interrupted();
+            bt.send(binary_str, true);
+            Log.i("", "SendThread 대기 시작");
+            while (!Thread.currentThread().isInterrupted());
+            Log.i("", "SendThread 대기 종료");
+            Thread.currentThread().interrupted();
         }
-
-        public void onEnd() {
-            textState.setText("전송 끝, 입력 대기");
-            textElement.setText("전송 완료");
-            textBraille.setText("전송 완료");
-
-            message = handler.obtainMessage();
-            message.what = SEND_INFORMATION;
-            message.obj = "000000/000000/000000/000000/";
-            handler.sendMessage(message);
-
-            while (!Thread.currentThread().isInterrupted()) {
-            }
-            thread.interrupted();
+        void onEnd(){
+            bt.send("Q", true);
+            handler.sendEmptyMessage(END);
         }
-
+        void onReset(){
+            this.onEnd();
+            this.stop = true;
+            sendthread.interrupt();
+        }
         public void run() {
-            super.run();
-            String[] word;
-            word = str.split(" ");
+            Log.i("state", "SendThread 시작");
+            for (int i = 0; i < braille_list.size() && !this.stop ; i++) {
 
-            ArrayList<List> braille_list = new ArrayList();
-            List temp;
-
-            Log.i("state", "변환중");
-            for (int i = 0; i < word.length; i++) {
-                String voca = word[i]; // 단어 저장
-                if (H2b.abbr_Condition(voca)) {
-                    Log.i("약어 단어 O - ", voca);
-                    braille_list.add(H2b.abbr_H2b(voca));
-                } else {
-                    // 약어 단어 X
-                    for (int j = 0; j < voca.length(); j++) {
-                        String letter = String.valueOf(voca.charAt(j)); // 글자 저장
-                        // 약어 글자 O
-                        if (H2b.abbr_Condition(letter)) {
-                            Log.i("약어 글자 O - ", letter);
-                            braille_list.add(H2b.abbr_H2b(letter));
-                        }
-                        // 약어 글자 X
-                        else {
-                            if (H2b.getType(letter)) {
-                                Log.i("한글 글자 O - ", letter);
-                                if (H2b.splitJaso(letter).length() == 3) {
-                                    Log.i("종성O - ", letter);
-                                    String element = H2b.splitJaso(letter);
-                                    temp = H2b.cho_H2b(element.charAt(0));
-                                    braille_list.add(temp);
-
-                                    temp = H2b.joong_H2b(element.charAt(1));
-                                    braille_list.add(temp);
-
-                                    temp = H2b.jong_H2b(element.charAt(2));
-                                    braille_list.add(temp);
-                                } else {
-                                    Log.i("종성X - ", letter);
-                                    String element = H2b.splitJaso(letter);
-                                    temp = H2b.cho_H2b(element.charAt(0));
-                                    braille_list.add(temp);
-
-                                    temp = H2b.joong_H2b(element.charAt(1));
-                                    braille_list.add(temp);
-                                }
-                            } else {
-                                Log.i("한글X - ", letter);
-                                String element = H2b.splitJaso(letter);
-                                temp = H2b.no_han_H2b(element.charAt(0));
-                                braille_list.add(temp);
-                            }
-                        }
-                    }
-                    braille_list.add(space_braille);
-                }
-            }
-            textState.setText("아두이노 신호 대기");
-            for (int i = 0; i < braille_list.size(); i++) {
                 String element = (String) braille_list.get(i).get(0);
                 String binary = (String) braille_list.get(i).get(1);
                 int length = (int) braille_list.get(i).get(2);
                 String braille = String.valueOf(braille_list.get(i).get(3));
 
+                if (i == braille_list.size() - 1) {
+                    for (int j = 0; j < max_braille_length - braille_length; j++) {
+                        element_data.add((String) space_braille.get(0));
+                        binary_data.add((String) space_braille.get(1));
+                        braille_data.add(String.valueOf(space_braille.get(3)));
+                    }
+                    onSend();
+                    onEnd();
+                }
                 if (braille_length + length < max_braille_length) {
                     braille_length += length;
-
                     binary_data.add(binary);
                     element_data.add(element);
                     braille_data.add(braille);
                 } else if (braille_length + length == max_braille_length) {
-
                     binary_data.add(binary);
                     element_data.add(element);
                     braille_data.add(braille);
-
                     onSend();
+
                     braille_length = 0;
                     binary_data = new ArrayList<>();
                     element_data = new ArrayList<>();
@@ -306,8 +230,8 @@ public class MainActivity extends AppCompatActivity {
                         binary_data.add((String) space_braille.get(1));
                         braille_data.add(String.valueOf(space_braille.get(3)));
                     }
-
                     onSend();
+
                     braille_length = length;
                     binary_data = new ArrayList<>();
                     element_data = new ArrayList<>();
@@ -317,25 +241,35 @@ public class MainActivity extends AppCompatActivity {
                     element_data.add(element);
                     braille_data.add(braille);
                 }
-
-                if (i == braille_list.size() - 1) {
-                    for (int j = 0; j < max_braille_length - braille_length; j++) {
-                        element_data.add((String) space_braille.get(0));
-                        binary_data.add((String) space_braille.get(1));
-                        braille_data.add(String.valueOf(space_braille.get(3)));
-                    }
-
-                    onSend();
-                    braille_length = 0;
-                    element_data = new ArrayList<>();
-                    binary_data = new ArrayList<>();
-                    braille_data = new ArrayList<>();
-                }
             }
-            onEnd();
+            Log.i("state", "SendThread 종료");
         }
     }
 
+    @SuppressLint("HandlerLeak")
+    final Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case END:
+                    textElement.setText("전송 종료");
+                    textBraille.setText("전송 종료");
+                    btnReset.setEnabled(false);
+                    btnSend.setEnabled(true);
+                    Log.i("state","END");
+                    break;
+                case RESET:
+                    textElement.setText("전송 취소");
+                    textBraille.setText("전송 취소");
+                    btnReset.setEnabled(false);
+                    btnSend.setEnabled(true);
+                    Log.i("state","RESET");
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
 
     public void onDestroy() {
         super.onDestroy();

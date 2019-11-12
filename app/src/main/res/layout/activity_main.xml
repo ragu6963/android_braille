@@ -39,7 +39,7 @@
         android:layout_marginTop="16dp"
         android:text="전송"
         android:enabled="false"
-        app:layout_constraintEnd_toStartOf="@+id/btnNext"
+        app:layout_constraintEnd_toStartOf="@+id/btnReset"
         app:layout_constraintStart_toEndOf="@+id/btnConnect"
         app:layout_constraintTop_toBottomOf="@+id/textSend" />
 
@@ -81,13 +81,13 @@
         tools:checked="false" />
 
     <Button
-        android:id="@+id/btnNext"
+        android:id="@+id/btnReset"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="32dp"
-        android:text="다음"
         android:enabled="false"
+        android:text="전송취소"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textSend" />
 

@@ -1,7 +1,5 @@
 package com.example.bluetooth;
 
-import android.util.Log;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,7 +30,7 @@ class H2b {
         if (c == 'ㅃ') return new ArrayList<>(Arrays.asList("ㅃ", "000001/000110/", 2, "⠠⠘"));
         if (c == 'ㅆ') return new ArrayList<>(Arrays.asList("ㅆ", "000001/000001/", 1, "⠠⠠"));
         if (c == 'ㅉ') return new ArrayList<>(Arrays.asList("ㅉ", "000001/000101/", 2, "⠠⠨"));
-        return new ArrayList<>(Arrays.asList("\\", "000000/", 1, "⣿"));
+        return new ArrayList<>(Arrays.asList("\\", "000000/", 1, "ㆍ"));
     }
 
     public static List joong_H2b(char c) {
@@ -57,7 +55,7 @@ class H2b {
         if (c == 'ㅞ') return new ArrayList<>(Arrays.asList("ㅞ", "111100/111010/", 2, "⠏⠗"));
         if (c == 'ㅟ') return new ArrayList<>(Arrays.asList("ㅟ", "101100/111010/", 2, "⠍⠗"));
         if (c == 'ㅢ') return new ArrayList<>(Arrays.asList("ㅢ", "010111/", 1, "⠺"));
-        return new ArrayList<>(Arrays.asList("\\", "000000/", 1, "⣿"));
+        return new ArrayList<>(Arrays.asList("\\", "000000/", 1, "ㆍ"));
     }
 
     static List jong_H2b(char c) {
@@ -88,7 +86,7 @@ class H2b {
         if (c == 'ㄿ') return new ArrayList<>(Arrays.asList("ㄿ", "010000/010011/", 2, "⠂⠲"));
         if (c == 'ㅀ') return new ArrayList<>(Arrays.asList("ㅀ", "010000/001011/", 2, "⠂⠴"));
         if (c == 'ㅄ') return new ArrayList<>(Arrays.asList("ㅄ", "110000/001000/", 2, "⠃⠄"));
-        return new ArrayList<>(Arrays.asList("\\", "000000/", 1, "⣿"));
+        return new ArrayList<>(Arrays.asList("\\", "000000/", 1, "ㆍ"));
     }
 
     static List no_han_H2b(char c) {
@@ -188,7 +186,7 @@ class H2b {
         if (c == '!') return new ArrayList<>(Arrays.asList("!", "011010/", 1, "⠖"));
         if (c == ':') return new ArrayList<>(Arrays.asList(":", "000010/010000/", 2, "⠐⠂"));
         if (c == ';') return new ArrayList<>(Arrays.asList(";", "000011/011000/", 2, "⠰⠆"));
-        return new ArrayList<>(Arrays.asList("\\", "000000/", 1, "⣿"));
+        return new ArrayList<>(Arrays.asList("\\", "000000/", 1, "ㆍ"));
     }
 
     static List abbr_H2b(String c) {
@@ -225,7 +223,7 @@ class H2b {
         if (c.equals("그런데")) return new ArrayList<>(Arrays.asList("그런데", "100000/101110/", 2, "⠁⠝"));
         if (c.equals("그리고")) return new ArrayList<>(Arrays.asList("그리고", "100000/101001/", 2, "⠁⠥"));
         if (c.equals("그리하여")) return new ArrayList<>(Arrays.asList("그리하여", "100000/100011/", 2, "⠁⠱"));
-        return new ArrayList<>(Arrays.asList("\\", "000000/", 1, "⣿"));
+        return new ArrayList<>(Arrays.asList("\\", "000000/", 1, "ㆍ"));
     }
 
     // 자소 분리 함수
@@ -252,7 +250,6 @@ class H2b {
     }
 
     static boolean abbr_Condition(String c) {
-        Log.i("c = ", c);
         String[] abbr = new String[]{"가", "나", "다", "마", "바", "사", "자", "카", "타", "파", "하",
                 "것", "억", "언", "얼", "연", "영", "옥", "온", "옹", "운", "울", "을", "인",
                 "그래서", "그러면", "그러나", "그러므로", "그런데", "그리고", "그리하여"};
@@ -271,5 +268,64 @@ class H2b {
 
     static boolean getType(char word) {
         return Pattern.matches("^[가-힣]*$", Character.toString(word));
+    }
+    static ArrayList<List> convert(String str){
+        String[] word;
+        word = str.split(" ");
+        ArrayList space_braille = new ArrayList<>(Arrays.asList("\\", "000000/", 1, "ㆍ"));
+
+        ArrayList<List> braille_list = new ArrayList();
+        List temp;
+
+        for (int i = 0; i < word.length; i++) {
+            String voca = word[i]; // 단어 저장
+            if (H2b.abbr_Condition(voca)) {
+//                        Log.i("약어 단어 O - ", voca);
+                braille_list.add(H2b.abbr_H2b(voca));
+            } else {
+                // 약어 단어 X
+                for (int j = 0; j < voca.length(); j++) {
+                    String letter = String.valueOf(voca.charAt(j)); // 글자 저장
+                    // 약어 글자 O
+                    if (H2b.abbr_Condition(letter)) {
+//                                Log.i("약어 글자 O - ", letter);
+                        braille_list.add(H2b.abbr_H2b(letter));
+                    }
+                    // 약어 글자 X
+                    else {
+                        if (H2b.getType(letter)) {
+//                                    Log.i("한글 글자 O - ", letter);
+                            if (H2b.splitJaso(letter).length() == 3) {
+//                                        Log.i("종성O - ", letter);
+                                String element = H2b.splitJaso(letter);
+                                temp = H2b.cho_H2b(element.charAt(0));
+                                braille_list.add(temp);
+
+                                temp = H2b.joong_H2b(element.charAt(1));
+                                braille_list.add(temp);
+
+                                temp = H2b.jong_H2b(element.charAt(2));
+                                braille_list.add(temp);
+                            } else {
+//                                        Log.i("종성X - ", letter);
+                                String element = H2b.splitJaso(letter);
+                                temp = H2b.cho_H2b(element.charAt(0));
+                                braille_list.add(temp);
+
+                                temp = H2b.joong_H2b(element.charAt(1));
+                                braille_list.add(temp);
+                            }
+                        } else {
+//                                    Log.i("한글X - ", letter);
+                            String element = H2b.splitJaso(letter);
+                            temp = H2b.no_han_H2b(element.charAt(0));
+                            braille_list.add(temp);
+                        }
+                    }
+                }
+            }
+            braille_list.add(space_braille);
+        }
+        return braille_list;
     }
 }
