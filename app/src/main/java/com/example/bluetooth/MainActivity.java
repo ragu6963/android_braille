@@ -2,19 +2,27 @@ package com.example.bluetooth;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.Toolbar;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.ArrayList;
@@ -43,11 +51,15 @@ public class MainActivity extends AppCompatActivity {
     Thread sendthread;
     SendThread st;
 
+    ActionBar ab;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        ab = getSupportActionBar();
+        ab.setTitle("Final Project team 13") ;
 
         btnReset = findViewById(R.id.btnReset);
         btnSend = findViewById(R.id.btnSend);
@@ -145,8 +157,33 @@ public class MainActivity extends AppCompatActivity {
                 sendthread.start();
             }
         });
+
     }
 
+    public void dialog()
+    {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog, null);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.actionbar_actions, menu) ;
+        return true ;
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.team :
+                dialog();
+                return true ;
+
+        }
+        return true;
+    }
     class SendThread implements Runnable {
         ArrayList<String> binary_data = new ArrayList<>();
         ArrayList<String> element_data = new ArrayList<>();
