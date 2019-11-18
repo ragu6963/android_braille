@@ -144,14 +144,17 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+//      전송 버튼 클릭
         btnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+//              초기화 버튼 활성화, 전송 버튼 비활성화
                 btnReset.setEnabled(true);
                 btnSend.setEnabled(false);
+//              입력 텍스트 점자로 변환
                 ArrayList<List> braille_list = H2b.convert(textSend.getText().toString());
-
                 textState.setText("아두이노 신호 대기");
+//              전송 스레드 객체 생성 & 시작
                 st = new SendThread(braille_list);
                 sendthread = new Thread(st);
                 sendthread.start();

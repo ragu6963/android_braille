@@ -253,7 +253,6 @@ class H2b {
         String[] abbr = new String[]{"가", "나", "다", "마", "바", "사", "자", "카", "타", "파", "하",
                 "것", "억", "언", "얼", "연", "영", "옥", "온", "옹", "운", "울", "을", "인",
                 "그래서", "그러면", "그러나", "그러므로", "그런데", "그리고", "그리하여"};
-        // 수정 해야할 부분
         for (int i = 0; i < abbr.length; i++) {
             if (c.equals(abbr[i]))
                 return true;
@@ -266,9 +265,7 @@ class H2b {
         return Pattern.matches("^[가-힣]*$", word);
     }
 
-    static boolean getType(char word) {
-        return Pattern.matches("^[가-힣]*$", Character.toString(word));
-    }
+
     static ArrayList<List> convert(String str){
         String[] word;
         word = str.split(" ");
@@ -279,51 +276,62 @@ class H2b {
 
         for (int i = 0; i < word.length; i++) {
             String voca = word[i]; // 단어 저장
+//          Log.i("약어 단어 O - ", voca);
             if (H2b.abbr_Condition(voca)) {
-//                        Log.i("약어 단어 O - ", voca);
                 braille_list.add(H2b.abbr_H2b(voca));
-            } else {
-                // 약어 단어 X
+            }
+            else {
+//              약어 단어 X
                 for (int j = 0; j < voca.length(); j++) {
                     String letter = String.valueOf(voca.charAt(j)); // 글자 저장
-                    // 약어 글자 O
+//                  약어 글자 O
                     if (H2b.abbr_Condition(letter)) {
 //                                Log.i("약어 글자 O - ", letter);
                         braille_list.add(H2b.abbr_H2b(letter));
                     }
-                    // 약어 글자 X
+//                  약어 글자 X
                     else {
                         if (H2b.getType(letter)) {
 //                                    Log.i("한글 글자 O - ", letter);
                             if (H2b.splitJaso(letter).length() == 3) {
 //                                        Log.i("종성O - ", letter);
-                                String element = H2b.splitJaso(letter);
-                                temp = H2b.cho_H2b(element.charAt(0));
-                                braille_list.add(temp);
 
+//                              글자 형태소로 나누기
+                                String element = H2b.splitJaso(letter);
+//                              초성이 o 면 스킵 아니면 저장
+                                if(element.charAt(0) != 'o'){
+                                    temp = H2b.cho_H2b(element.charAt(0));
+                                    braille_list.add(temp);
+                                }
+//                              중성 종성 저장
                                 temp = H2b.joong_H2b(element.charAt(1));
                                 braille_list.add(temp);
 
                                 temp = H2b.jong_H2b(element.charAt(2));
                                 braille_list.add(temp);
                             } else {
-//                                        Log.i("종성X - ", letter);
+//                                        Log.i("종성X - ", letter)
+//                              글자 형태소로 나누기
                                 String element = H2b.splitJaso(letter);
-                                temp = H2b.cho_H2b(element.charAt(0));
-                                braille_list.add(temp);
-
+//                              초성이 o 면 스킵 아니면 저장
+                                if(element.charAt(0) != 'o'){
+                                    temp = H2b.cho_H2b(element.charAt(0));
+                                    braille_list.add(temp);
+                                }
+//                              중성 저장
                                 temp = H2b.joong_H2b(element.charAt(1));
                                 braille_list.add(temp);
                             }
                         } else {
-//                                    Log.i("한글X - ", letter);
-                            String element = H2b.splitJaso(letter);
-                            temp = H2b.no_han_H2b(element.charAt(0));
+//                          Log.i("한글X - ", letter);
+//                          알파벳, 숫자, 특수문자 저장
+                            temp = H2b.no_han_H2b(letter.charAt(0));
                             braille_list.add(temp);
                         }
                     }
                 }
             }
+//          단어 사이 공백 추가
             braille_list.add(space_braille);
         }
         return braille_list;
