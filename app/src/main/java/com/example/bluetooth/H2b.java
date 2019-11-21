@@ -216,13 +216,20 @@ class H2b {
         if (c.equals("은")) return new ArrayList<>(Arrays.asList("은", "101011/", 1, "⠵"));
         if (c.equals("을")) return new ArrayList<>(Arrays.asList("을", "011101/", 1, "⠮"));
         if (c.equals("인")) return new ArrayList<>(Arrays.asList("인", "111110/", 1, "⠟"));
-        if (c.equals("그래서")) return new ArrayList<>(Arrays.asList("그래서", "100000/011100/", 2, "⠁⠎"));
-        if (c.equals("그러면")) return new ArrayList<>(Arrays.asList("그러면", "100000/010010/", 2, "⠁⠒"));
-        if (c.equals("그러나")) return new ArrayList<>(Arrays.asList("그러나", "100000/100100/", 2, "⠁⠉"));
-        if (c.equals("그러므로")) return new ArrayList<>(Arrays.asList("그러므로", "100000/010001/", 2, "⠁⠢"));
-        if (c.equals("그런데")) return new ArrayList<>(Arrays.asList("그런데", "100000/101110/", 2, "⠁⠝"));
-        if (c.equals("그리고")) return new ArrayList<>(Arrays.asList("그리고", "100000/101001/", 2, "⠁⠥"));
-        if (c.equals("그리하여")) return new ArrayList<>(Arrays.asList("그리하여", "100000/100011/", 2, "⠁⠱"));
+        if (c.equals("그래서"))
+            return new ArrayList<>(Arrays.asList("그래서", "100000/011100/", 2, "⠁⠎"));
+        if (c.equals("그러면"))
+            return new ArrayList<>(Arrays.asList("그러면", "100000/010010/", 2, "⠁⠒"));
+        if (c.equals("그러나"))
+            return new ArrayList<>(Arrays.asList("그러나", "100000/100100/", 2, "⠁⠉"));
+        if (c.equals("그러므로"))
+            return new ArrayList<>(Arrays.asList("그러므로", "100000/010001/", 2, "⠁⠢"));
+        if (c.equals("그런데"))
+            return new ArrayList<>(Arrays.asList("그런데", "100000/101110/", 2, "⠁⠝"));
+        if (c.equals("그리고"))
+            return new ArrayList<>(Arrays.asList("그리고", "100000/101001/", 2, "⠁⠥"));
+        if (c.equals("그리하여"))
+            return new ArrayList<>(Arrays.asList("그리하여", "100000/100011/", 2, "⠁⠱"));
         return new ArrayList<>(Arrays.asList("\\", "000000/", 1, "ㆍ"));
     }
 
@@ -249,6 +256,7 @@ class H2b {
         return result.toString();
     }
 
+    // 약어 단어 글자 판별
     static boolean abbr_Condition(String c) {
         String[] abbr = new String[]{"가", "나", "다", "마", "바", "사", "자", "카", "타", "파", "하",
                 "것", "억", "언", "얼", "연", "영", "옥", "온", "옹", "운", "울", "을", "인",
@@ -257,19 +265,18 @@ class H2b {
             if (c.equals(abbr[i]))
                 return true;
         }
-
         return false;
     }
-
+    // 글자 한글 판별( 한글 o : True , 한글 x : False)
     static boolean getType(String word) {
         return Pattern.matches("^[가-힣]*$", word);
     }
 
 
-    static ArrayList<List> convert(String str){
+    static ArrayList<List> convert(String str) {
         String[] word;
         word = str.split(" ");
-        ArrayList space_braille = new ArrayList<>(Arrays.asList("\\", "000000/", 1, "ㆍ"));
+        ArrayList space_braille = new ArrayList<>(Arrays.asList(" ", "000000/", 1, "ㆍ"));
 
         ArrayList<List> braille_list = new ArrayList();
         List temp;
@@ -279,47 +286,34 @@ class H2b {
 //          Log.i("약어 단어 O - ", voca);
             if (H2b.abbr_Condition(voca)) {
                 braille_list.add(H2b.abbr_H2b(voca));
-            }
-            else {
+            } else {
 //              약어 단어 X
                 for (int j = 0; j < voca.length(); j++) {
                     String letter = String.valueOf(voca.charAt(j)); // 글자 저장
 //                  약어 글자 O
                     if (H2b.abbr_Condition(letter)) {
-//                                Log.i("약어 글자 O - ", letter);
+//                      Log.i("약어 글자 O - ", letter);
                         braille_list.add(H2b.abbr_H2b(letter));
                     }
 //                  약어 글자 X
                     else {
                         if (H2b.getType(letter)) {
-//                                    Log.i("한글 글자 O - ", letter);
+//                          Log.i("한글 글자 d - ", letter);
+//                          글자 형태소로 나누기
+                            String element = H2b.splitJaso(letter);
+
+//                          초성이 ㅇ 이 아니면 저장
+                            if (element.charAt(0) != 'ㅇ') {
+                                temp = H2b.cho_H2b(element.charAt(0));
+                                braille_list.add(temp);
+                            }
+//                          중성 저장
+                            temp = H2b.joong_H2b(element.charAt(1));
+                            braille_list.add(temp);
+
+//                          종성이 있으면 종성 저장
                             if (H2b.splitJaso(letter).length() == 3) {
-//                                        Log.i("종성O - ", letter);
-
-//                              글자 형태소로 나누기
-                                String element = H2b.splitJaso(letter);
-//                              초성이 o 면 스킵 아니면 저장
-                                if(element.charAt(0) != 'o'){
-                                    temp = H2b.cho_H2b(element.charAt(0));
-                                    braille_list.add(temp);
-                                }
-//                              중성 종성 저장
-                                temp = H2b.joong_H2b(element.charAt(1));
-                                braille_list.add(temp);
-
                                 temp = H2b.jong_H2b(element.charAt(2));
-                                braille_list.add(temp);
-                            } else {
-//                                        Log.i("종성X - ", letter)
-//                              글자 형태소로 나누기
-                                String element = H2b.splitJaso(letter);
-//                              초성이 o 면 스킵 아니면 저장
-                                if(element.charAt(0) != 'o'){
-                                    temp = H2b.cho_H2b(element.charAt(0));
-                                    braille_list.add(temp);
-                                }
-//                              중성 저장
-                                temp = H2b.joong_H2b(element.charAt(1));
                                 braille_list.add(temp);
                             }
                         } else {

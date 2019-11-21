@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
 //                Toast.makeText(MainActivity.this, "수신 성공", Toast.LENGTH_SHORT).show();
                 if (message.contains("q")) {
                     sendthread.interrupt();
-                    textState.setText("아두이노 통신 중");
+                    textState.setText("아두이노 신호 수신");
                 }
             }
         });
@@ -153,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
                 btnSend.setEnabled(false);
 //              입력 텍스트 점자로 변환
                 ArrayList<List> braille_list = H2b.convert(textSend.getText().toString());
-                textState.setText("아두이노 신호 대기");
+                textState.setText("통신 시작");
 //              전송 스레드 객체 생성 & 시작
                 st = new SendThread(braille_list);
                 sendthread = new Thread(st);
